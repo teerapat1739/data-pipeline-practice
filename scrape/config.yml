@@ -1,0 +1,29 @@
+# redishost: 10.10.14.212
+# es_url: http://10.10.14.212:9200
+# es_database_send:
+#   index : url_website_crawler
+
+
+rabbit_url: 127.0.0.1
+rabbit_database:
+  index: news
+  routing_key: post_to_day_news_key
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# es_specific:
+#   index: dbd_specific_word
+#   doc_type: specific

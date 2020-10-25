@@ -1,0 +1,6 @@
+requests
+beautifulsoup4
+pika
+pyyaml
+lxml
+flask
