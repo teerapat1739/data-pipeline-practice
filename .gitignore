@@ -1,1 +1,6 @@
 doc.yaml
+.pyc
+.env
+.docker
+scrape/__pycache__
+save/__pycache__
