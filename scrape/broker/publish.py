@@ -13,18 +13,13 @@ class rabbit_publish:
                         # pika.ConnectionParameters(host='localhost'))
                         pika.ConnectionParameters(host='rabbitmq'))
 
-        # print(port,database)
     def send(self, payload, routing_key, exchange_key="amq.direct"):
         body = json.dumps(payload, ensure_ascii=False)
-        # body = payload
-        # print("bbb",payload)
-        # print("----------",self.conn.channel())
         channel = self.conn.channel()
         
         channel.queue_declare(queue=routing_key)
 
         channel.basic_publish(exchange='',
                               routing_key=routing_key, body=body)
-        # print(" [x] Sent 'Hello World!'")
                    
         channel.close()
