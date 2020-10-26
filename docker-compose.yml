@@ -1,4 +1,4 @@
-version: '2.1'
+version: "3.6"
 services:
     redis:
         image: 'redis:5.0.5'
@@ -90,3 +90,45 @@ services:
             # - POSTGRES_DB=airflow
             # - REDIS_PASSWORD=redispass
         command: worker
+    
+    rabbitmq:
+        image: 'rabbitmq:3.6-management-alpine'
+        ports:
+            # The standard AMQP protocol port
+            - '5672:5672'
+            # HTTP management UI
+            - '15672:15672'
+        environment:
+            # The location of the RabbitMQ server.  "amqp" is the protocol;
+            # "rabbitmq" is the hostname.  Note that there is not a guarantee
+            # that the server will start first!  Telling the pika client library
+            # to try multiple times gets around this ordering issue.
+            AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+            RABBITMQ_DEFAULT_USER: "guest"
+            RABBITMQ_DEFAULT_PASS: "guest"
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:15672"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+    scrape:
+        build: './scrape'
+        depends_on:
+            - rabbitmq
+        restart: on-failure
+        ports: 
+            - 5000:5000
+        environment: 
+            PORT: 5000
+            FLASK_DEBUG: 1
+        volumes:
+            - ./save/file:/usr/src/app/file
+    save_file:
+        build: './save'
+        depends_on:
+            - rabbitmq
+        restart: on-failure
+        volumes:
+            - ./save/file:/usr/src/app/file
+       
+          

@@ -11,6 +11,7 @@ class rabbit_publish:
     def __init__(self):
         self.conn = pika.BlockingConnection(
                         # pika.ConnectionParameters(host='localhost'))
+                        # pika.ConnectionParameters(host='amqp://rabbitmq?connection_attempts=5&retry_delay=5'))
                         pika.ConnectionParameters(host='rabbitmq'))
 
     def send(self, payload, routing_key, exchange_key="amq.direct"):

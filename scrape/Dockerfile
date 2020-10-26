@@ -1,19 +1,7 @@
-FROM python:3
-
-WORKDIR /usr/src/app
-
-COPY requirements.txt ./
-# RUN pip install --no-cache-dir requests && \
-#     pip install --no-cache-dir beautifulsoup4 && \
-#     pip install --no-cache-dir pika && \
-#     pip install --no-cache-dir pyyaml && \
-#     pip install --no-cache-dir lxml
-
-# RUN pip install --no-cache-dir beautifulsoup4
-
+FROM python:3.6
+RUN mkdir /usr/src/app/
+COPY . /usr/src/app/
+WORKDIR /usr/src/app/
+EXPOSE 5000
 RUN pip install -r requirements.txt
-
-
-COPY . .
-
-CMD [ "python", "./app.py" ]
+CMD ["python", "app.py"]
