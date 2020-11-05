@@ -14,7 +14,14 @@ services:
         #     - PGDATA=/var/lib/postgresql/data/pgdata
         # volumes:
         #     - ./pgdata:/var/lib/postgresql/data/pgdata
+    mysql:
 
+        image: mysql:5.7.27
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+        volumes:
+            # - ./store_files:/store_files_mysql/
+            - ./mysql.cnf:/etc/mysql/mysql.cnf
     webserver:
         image: puckel/docker-airflow:1.10.9
         restart: always
@@ -67,6 +74,7 @@ services:
             - LOAD_EX=n
             - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
             - EXECUTOR=Celery
+            - scra
             # - POSTGRES_USER=airflow
             # - POSTGRES_PASSWORD=airflows
             # - POSTGRES_DB=airflow
@@ -85,6 +93,7 @@ services:
         environment:
             - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
             - EXECUTOR=Celery
+            - SCRAPE_SERVICE_ENDPOINT=http://scrape:5000/
             # - POSTGRES_USER=airflow
             # - POSTGRES_PASSWORD=airflow
             # - POSTGRES_DB=airflow
