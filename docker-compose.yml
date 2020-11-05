@@ -20,7 +20,6 @@ services:
         environment:
             - MYSQL_ROOT_PASSWORD=root
         volumes:
-            # - ./store_files:/store_files_mysql/
             - ./mysql.cnf:/etc/mysql/mysql.cnf
     webserver:
         image: puckel/docker-airflow:1.10.9
