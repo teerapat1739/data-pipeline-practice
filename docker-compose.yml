@@ -10,6 +10,8 @@ services:
             - POSTGRES_USER=airflow
             - POSTGRES_PASSWORD=airflow
             - POSTGRES_DB=airflow
+        ports:
+            - "5432:5432"
         # Uncomment these lines to persist data on the local filesystem.
         #     - PGDATA=/var/lib/postgresql/data/pgdata
         # volumes:
@@ -21,6 +23,8 @@ services:
             - MYSQL_ROOT_PASSWORD=root
         volumes:
             - ./mysql.cnf:/etc/mysql/mysql.cnf
+        ports:
+            - "3306:3306"
     webserver:
         image: puckel/docker-airflow:1.10.9
         restart: always
