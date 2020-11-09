@@ -1,40 +1,91 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.hooks.postgres_hook import PostgresHook
+
+
 from datetime import datetime, timedelta
-from airflow.models import Variable
-from bs4 import BeautifulSoup
 import requests
-import http.client
-import mimetypes
+import pandas as pd    
 
 
-def method_one():
-    conn = http.client.HTTPSConnection("www.prachachat.net")
-    payload = ''
-    headers = {}
-    all_path = ["/feed", "/finance/feed", "/marketing/feed", "/economy/feed", "/politics/feed", "/world-news/feed"]
-    dict_item = {"title":"","date":"","url":"","source":""} 
-    for i in range(len(all_path)):
-        conn.request("GET", all_path[i], payload, headers)
-        res = conn.getresponse()
-        data = res.read()
-        soup = BeautifulSoup(data.decode("utf-8"), 'lxml')
-        items = soup.find_all('item')
-        for item in items:
-            dict_item["title"] = item.title.text
-            dict_item["date"] = " ".join(item.pubdate.text.split(' ')[1:4])
-            dict_item["source"] = "prachachat"
-            dict_item["url"] = item.select_one('comments').text.split('#')[0]
-            # send_api.send(dict_item,routing_key)
-    print('dict_item_1',dict_item)
+import os
+
+
+# TODO: move to configuration in airflow
+SCRAPE_SERVICE_ENDPOINT=os.getenv('SCRAPE_SERVICE_ENDPOINT')
+
+
 
 
 default_args = {
-    "owner": 'Airflow',
-    "start_date": datetime(2020,9,30),
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2020, 1, 1),
+    "email": ["airflow@airflow.com"],
+    "email_on_failure": False,
+    "email_on_retry": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
 }
 
-dag = DAG("variable", default_args=default_args, schedule_interval=timedelta(1))
+def get_news_api():
+    response = requests.get(SCRAPE_SERVICE_ENDPOINT + 'news')
 
-# t1 = BashOperator(task_id="print_path", bash_command="echo /usr/local/airflow", dag=dag)
-t1 =  push_task = PythonOperator(task_id='push_task', python_callable=method_one, provide_context=True)
+    df = pd.read_json(SCRAPE_SERVICE_ENDPOINT + 'news')
+    print(df)
+    df.to_csv('/usr/local/airflow/dags/news.csv')
+
+
+def transfer_function(ds, **kwargs):
+
+    destination_hook = PostgresHook(postgres_conn_id='postgres_conn', schema='airflow')
+    destination_conn = destination_hook.get_conn()
+    destination_cursor = destination_conn.cursor()
+
+    df = pd.read_csv ('/usr/local/airflow/dags/news.csv', encoding='utf8')
+    df["date"] = pd.to_datetime(df["date"],errors = 'ignore') 
+
+    for _,row in df.iterrows():
+        sql = "INSERT INTO news (date, source, title, url) VALUES (%s, %s, %s, %s)"
+        val = (row["date"], row["source"], row["title"], row["url"])
+        destination_cursor.execute(sql, val)
+        destination_conn.commit()
+    
+    destination_hook = PostgresHook(postgres_conn_id='postgres_conn', schema='airflow')
+    destination_conn = destination_hook.get_conn()
+
+    destination_cursor = destination_conn.cursor()
+
+
+    destination_cursor.close()
+    destination_conn.close()
+    print("Data transferred successfully!")
+
+
+with DAG(dag_id="news-data-pipe-line", schedule_interval="@daily", default_args=default_args, catchup=False) as dag:
+
+    get_news = PythonOperator(
+            task_id="get_news",
+            python_callable=get_news_api
+    )
+
+    create_news_table = PostgresOperator(
+           task_id="create_news_table",
+           postgres_conn_id="postgres_conn",
+           mysql_conn_id="postgres_conn", 
+           sql="CREATE TABLE IF NOT EXISTS news(date  timestamp, source varchar(40), title varchar(255), url varchar(255))"
+    )
+
+    save_csv_to_db = PythonOperator(
+        task_id = 'save_csv_to_db',
+        python_callable = transfer_function,
+        provide_context=True,
+        dag = dag
+    )
+
+
+
+    # change import csv data string to type date time from db with dataframe
+
+    get_news >> create_news_table >> save_csv_to_db
